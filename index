@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Decimal Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevents scrollbars */
+        }
+        #container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        #controls-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
+            width: 220px; /* Made the panel narrower */
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #374151;
+        }
+        .control-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            border: 1px solid #D1D5DB;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .control-group input:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: white;
+            transition: background-color 0.2s, transform 0.1s, opacity 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #6B7280;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #4B5563;
+        }
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        .btn-accent {
+            background-color: #8B5CF6;
+        }
+        .btn-accent:hover:not(:disabled) {
+            background-color: #7C3AED;
+        }
+        #breakBtn {
+            position: absolute;
+            display: none;
+            z-index: 20;
+            width: 80px;
+            padding: 8px;
+            background-color: #8B5CF6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        #breakBtn:hover {
+             background-color: #7C3AED;
+        }
+
+        /* Custom Number Input Styles */
+        .number-input-wrapper {
+            position: relative;
+        }
+        .number-input-wrapper input[type=number] {
+            -moz-appearance: textfield; /* Firefox */
+            padding-right: 32px; /* Make space for buttons */
+        }
+        .number-input-wrapper input[type=number]::-webkit-outer-spin-button,
+        .number-input-wrapper input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .spinner-buttons {
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            bottom: 1px;
+            width: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .spinner-buttons button {
+            flex: 1;
+            background-color: #e5e7eb;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #4b5563;
+            transition: background-color 0.2s;
+        }
+        .spinner-buttons button:hover {
+            background-color: #d1d5db;
+        }
+        .spinner-up {
+            border-top-right-radius: 5px;
+            border-bottom: 1px solid #d1d5db;
+        }
+        .spinner-down {
+            border-bottom-right-radius: 5px;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="container"></div>
+    <button id="breakBtn" class="btn">Break</button>
+
+    <div id="controls-panel">
+        <h1 class="text-xl font-bold text-gray-800 mb-3">3D Visualizer</h1>
+
+        <div id="total-display" class="text-center bg-gray-200 p-2 rounded-lg mb-4">
+            <span class="text-xl font-bold text-gray-700">1.234</span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3">
+            <div class="control-group">
+                <label for="ones">Ones</label>
+                <div class="number-input-wrapper">
+                    <input type="number" id="ones" min="0" max="99" value="1">
+                    <div class="spinner-buttons">
+                        <button class="spinner-up" data-for="ones">&#9650;</button>
+                        <button class="spinner-down" data-for="ones">&#9660;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="tenths">Tenths</label>
+                <div class="number-input-wrapper">
+                    <input type="number" id="tenths" min="0" max="99" value="12">
+                    <div class="spinner-buttons">
+                        <button class="spinner-up" data-for="tenths">&#9650;</button>
+                        <button class="spinner-down" data-for="tenths">&#9660;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="hundredths">Hundredths</label>
+                <div class="number-input-wrapper">
+                    <input type="number" id="hundredths" min="0" max="99" value="3">
+                    <div class="spinner-buttons">
+                        <button class="spinner-up" data-for="hundredths">&#9650;</button>
+                        <button class="spinner-down" data-for="hundredths">&#9660;</button>
+                    </div>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="thousandths">Thousandths</label>
+                <div class="number-input-wrapper">
+                    <input type="number" id="thousandths" min="0" max="99" value="4">
+                    <div class="spinner-buttons">
+                        <button class="spinner-up" data-for="thousandths">&#9650;</button>
+                        <button class="spinner-down" data-for="thousandths">&#9660;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 space-y-2">
+            <button id="regroupBtn" class="btn btn-accent" disabled>Regroup</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.128.0';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls;
+        let objectsGroup;
+        const unitSize = 2;
+
+        let raycaster, mouse, activeObject, breakBtn;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f2f5);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 20);
+
+            const container = document.getElementById('container');
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(10, 20, 5);
+            scene.add(directionalLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 50;
+            controls.target.set(0, 0, 0);
+
+            objectsGroup = new THREE.Group();
+            scene.add(objectsGroup);
+            
+            createTable();
+
+            // --- Interaction Setup ---
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            breakBtn = document.getElementById('breakBtn');
+            activeObject = null;
+            
+            renderer.domElement.addEventListener('click', onClick, false);
+            breakBtn.addEventListener('click', breakActiveObject);
+            document.getElementById('regroupBtn').addEventListener('click', regroup);
+
+
+            const inputs = ['ones', 'tenths', 'hundredths', 'thousandths'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('input', visualizeNumber);
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                document.getElementById('ones').value = 0;
+                document.getElementById('tenths').value = 0;
+                document.getElementById('hundredths').value = 0;
+                document.getElementById('thousandths').value = 0;
+                visualizeNumber();
+            });
+
+            // --- Custom Spinner Button Logic ---
+            document.querySelectorAll('.spinner-buttons button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); 
+                    const inputId = button.dataset.for;
+                    const input = document.getElementById(inputId);
+                    if (!input) return;
+
+                    let value = parseInt(input.value) || 0;
+                    const step = 1;
+                    const min = parseInt(input.min);
+                    const max = parseInt(input.max);
+
+                    if (button.classList.contains('spinner-up')) {
+                        value = Math.min(max, value + step);
+                    } else if (button.classList.contains('spinner-down')) {
+                        value = Math.max(min, value - step);
+                    }
+
+                    input.value = value;
+                    const event = new Event('input', { bubbles: true });
+                    input.dispatchEvent(event);
+                });
+            });
+
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            visualizeNumber();
+            animate();
+        }
+        
+        function createTextCanvas(text, width, height) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+            context.fillStyle = '#4B5563';
+            context.fillRect(0, 0, width, height);
+            context.font = 'bold 40px Inter';
+            context.fillStyle = 'white';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, width / 2, height / 2);
+            return canvas;
+        }
+
+        function createTable() {
+            const tableY = -unitSize / 2 - 0.1;
+            const tableGeometry = new THREE.BoxGeometry(24, 0.2, 8);
+            const tableMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+            const table = new THREE.Mesh(tableGeometry, tableMaterial);
+            table.position.y = tableY;
+            scene.add(table);
+            
+            const grid = new THREE.GridHelper(24, 4, 0xcccccc, 0xcccccc);
+            grid.position.y = tableY + 0.11;
+            scene.add(grid);
+
+            const labelGeo = new THREE.PlaneGeometry(5, 1);
+            const labelY = tableY + 0.12;
+            const labels = [{ text: 'Ones', x: -9 }, { text: 'Tenths', x: -3 }, { text: 'Hundredths', x: 3 }, { text: 'Thousandths', x: 9 }];
+            labels.forEach(info => {
+                const texture = new THREE.CanvasTexture(createTextCanvas(info.text, 256, 64));
+                const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                const mesh = new THREE.Mesh(labelGeo, material);
+                mesh.position.set(info.x, labelY, 5);
+                mesh.rotation.x = -Math.PI / 2;
+                scene.add(mesh);
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateButtonPosition();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function clearObjects() {
+            while (objectsGroup.children.length > 0) {
+                const object = objectsGroup.children[0];
+                object.geometry.dispose();
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(m => m.dispose());
+                } else {
+                    object.material.dispose();
+                }
+                objectsGroup.remove(object);
+            }
+            hideBreakButton();
+        }
+
+        function visualizeNumber() {
+            clearObjects();
+
+            const ones = parseInt(document.getElementById('ones').value) || 0;
+            const tenths = parseInt(document.getElementById('tenths').value) || 0;
+            const hundredths = parseInt(document.getElementById('hundredths').value) || 0;
+            const thousandths = parseInt(document.getElementById('thousandths').value) || 0;
+
+            const total = ones + (tenths / 10) + (hundredths / 100) + (thousandths / 1000);
+            document.querySelector('#total-display span').textContent = total.toFixed(3);
+
+            const spacing = 0.2;
+            const tableY = -unitSize / 2;
+
+            const materials = {
+                ones: new THREE.MeshStandardMaterial({ color: 0x3B82F6, roughness: 0.5, metalness: 0.1 }),
+                tenths: new THREE.MeshStandardMaterial({ color: 0x10B981, roughness: 0.5, metalness: 0.1 }),
+                hundredths: new THREE.MeshStandardMaterial({ color: 0xF59E0B, roughness: 0.5, metalness: 0.1 }),
+                thousandths: new THREE.MeshStandardMaterial({ color: 0xEF4444, roughness: 0.5, metalness: 0.1 })
+            };
+
+            const geometries = {
+                ones: new THREE.BoxGeometry(unitSize, unitSize, unitSize),
+                tenths: new THREE.BoxGeometry(unitSize / 10, unitSize, unitSize),
+                hundredths: new THREE.BoxGeometry(unitSize / 10, unitSize / 10, unitSize),
+                thousandths: new THREE.BoxGeometry(unitSize / 10, unitSize / 10, unitSize / 10)
+            };
+            
+            const zoneCenters = { ones: -9, tenths: -3, hundredths: 3, thousandths: 9 };
+
+            for (let i = 0; i < ones; i++) {
+                const mesh = new THREE.Mesh(geometries.ones, materials.ones);
+                mesh.position.set(zoneCenters.ones + (i * (unitSize + spacing)) - (ones-1)*(unitSize+spacing)/2, tableY + unitSize/2, 0);
+                mesh.name = 'one';
+                objectsGroup.add(mesh);
+            }
+
+            const tenthWidth = unitSize / 10;
+            for (let i = 0; i < tenths; i++) {
+                const mesh = new THREE.Mesh(geometries.tenths, materials.tenths);
+                mesh.position.set(zoneCenters.tenths + (i * (tenthWidth + spacing)) - (tenths-1)*(tenthWidth+spacing)/2, tableY + unitSize/2, 0);
+                mesh.name = 'tenth';
+                objectsGroup.add(mesh);
+            }
+
+            const hundredthWidth = unitSize / 10;
+            for (let i = 0; i < hundredths; i++) {
+                const mesh = new THREE.Mesh(geometries.hundredths, materials.hundredths);
+                mesh.position.set(zoneCenters.hundredths + (i * (hundredthWidth + spacing)) - (hundredths-1)*(hundredthWidth+spacing)/2, tableY + unitSize/20, 0);
+                mesh.name = 'hundredth';
+                objectsGroup.add(mesh);
+            }
+            
+            const thousandthSize = unitSize / 10;
+            for (let i = 0; i < thousandths; i++) {
+                const mesh = new THREE.Mesh(geometries.thousandths, materials.thousandths);
+                mesh.position.set(zoneCenters.thousandths + (i * (thousandthSize + spacing)) - (thousandths-1)*(thousandthSize+spacing)/2, tableY + thousandthSize/2, 0);
+                mesh.name = 'thousandth';
+                objectsGroup.add(mesh);
+            }
+
+            document.getElementById('regroupBtn').disabled = !(tenths >= 10 || hundredths >= 10 || thousandths >= 10);
+        }
+        
+        function onClick(event) {
+            if (document.getElementById('controls-panel').contains(event.target)) {
+                return;
+            }
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objectsGroup.children);
+
+            if (intersects.length > 0) {
+                const selected = intersects[0].object;
+                if (selected.name !== 'thousandth') {
+                    if (activeObject === selected) {
+                        hideBreakButton();
+                    } else {
+                        activeObject = selected;
+                        breakBtn.style.display = 'block';
+                        updateButtonPosition();
+                    }
+                } else {
+                    hideBreakButton();
+                }
+            } else {
+                hideBreakButton();
+            }
+        }
+
+        function hideBreakButton() {
+            activeObject = null;
+            breakBtn.style.display = 'none';
+        }
+
+        function updateButtonPosition() {
+            if (!activeObject) return;
+
+            const vector = new THREE.Vector3();
+            activeObject.getWorldPosition(vector);
+            vector.project(camera);
+
+            const x = (vector.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
+            const y = (vector.y * -0.5 + 0.5) * renderer.domElement.clientHeight;
+
+            breakBtn.style.left = `${x + 20}px`;
+            breakBtn.style.top = `${y - 20}px`;
+        }
+
+        function breakActiveObject() {
+            if (!activeObject) return;
+
+            const onesInput = document.getElementById('ones');
+            const tenthsInput = document.getElementById('tenths');
+            const hundredthsInput = document.getElementById('hundredths');
+            const thousandthsInput = document.getElementById('thousandths');
+
+            let ones = parseInt(onesInput.value);
+            let tenths = parseInt(tenthsInput.value);
+            let hundredths = parseInt(hundredthsInput.value);
+
+            switch (activeObject.name) {
+                case 'one':
+                    if (ones > 0) {
+                        onesInput.value = ones - 1;
+                        tenthsInput.value = tenths + 10;
+                    }
+                    break;
+                case 'tenth':
+                    if (tenths > 0) {
+                        tenthsInput.value = tenths - 1;
+                        hundredthsInput.value = hundredths + 10;
+                    }
+                    break;
+                case 'hundredth':
+                     if (hundredths > 0) {
+                        hundredthsInput.value = hundredths - 1;
+                        thousandthsInput.value = parseInt(thousandthsInput.value) + 10;
+                    }
+                    break;
+            }
+            
+            visualizeNumber();
+        }
+
+        function regroup() {
+            const inputs = {
+                ones: document.getElementById('ones'),
+                tenths: document.getElementById('tenths'),
+                hundredths: document.getElementById('hundredths'),
+                thousandths: document.getElementById('thousandths'),
+            };
+
+            let values = {
+                ones: parseInt(inputs.ones.value) || 0,
+                tenths: parseInt(inputs.tenths.value) || 0,
+                hundredths: parseInt(inputs.hundredths.value) || 0,
+                thousandths: parseInt(inputs.thousandths.value) || 0,
+            };
+
+            if (values.thousandths >= 10) {
+                values.thousandths -= 10;
+                values.hundredths += 1;
+            } else if (values.hundredths >= 10) {
+                values.hundredths -= 10;
+                values.tenths += 1;
+            } else if (values.tenths >= 10) {
+                values.tenths -= 10;
+                values.ones += 1;
+            }
+
+            inputs.ones.value = values.ones;
+            inputs.tenths.value = values.tenths;
+            inputs.hundredths.value = values.hundredths;
+            inputs.thousandths.value = values.thousandths;
+
+            visualizeNumber();
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
