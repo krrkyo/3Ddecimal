@@ -212,6 +212,7 @@
         const unitSize = 2;
 
         let raycaster, mouse, activeObject, breakBtn;
+        let touchStartPos = new THREE.Vector2();
 
         function init() {
             scene = new THREE.Scene();
@@ -251,6 +252,8 @@
             activeObject = null;
             
             renderer.domElement.addEventListener('click', onClick, false);
+            renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+            renderer.domElement.addEventListener('touchend', onTouchEnd, false);
             breakBtn.addEventListener('click', breakActiveObject);
             document.getElementById('regroupBtn').addEventListener('click', regroup);
 
@@ -431,13 +434,13 @@
             document.getElementById('regroupBtn').disabled = !(tenths >= 10 || hundredths >= 10 || thousandths >= 10);
         }
         
-        function onClick(event) {
-            if (document.getElementById('controls-panel').contains(event.target)) {
+        function handleInteraction(clientX, clientY) {
+            if (document.getElementById('controls-panel').contains(document.elementFromPoint(clientX, clientY))) {
                 return;
             }
 
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objectsGroup.children);
@@ -457,6 +460,31 @@
                 }
             } else {
                 hideBreakButton();
+            }
+        }
+        
+        function onClick(event) {
+            handleInteraction(event.clientX, event.clientY);
+        }
+
+        function onTouchStart(event) {
+            if (event.touches.length > 0) {
+                touchStartPos.x = event.touches[0].clientX;
+                touchStartPos.y = event.touches[0].clientY;
+            }
+        }
+
+        function onTouchEnd(event) {
+            if (event.changedTouches.length > 0) {
+                const endX = event.changedTouches[0].clientX;
+                const endY = event.changedTouches[0].clientY;
+
+                const deltaX = Math.abs(touchStartPos.x - endX);
+                const deltaY = Math.abs(touchStartPos.y - endY);
+
+                if (deltaX < 10 && deltaY < 10) {
+                    handleInteraction(endX, endY);
+                }
             }
         }
 
